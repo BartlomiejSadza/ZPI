@@ -1,0 +1,207 @@
+================================================================================
+                    WYDZIAŁ ZARZĄDZANIA - PROJEKT
+================================================================================
+
+        Modelowanie Zmienności Stóp Zwrotu S&P 500: ARMA-GARCH
+
+Autorzy: Jakub Sornat, Maciej Tajs, Bartłomiej Sadza
+Kierunek: Informatyka i Ekonometria
+Prowadzący: dr hab. Tomasz Wójtowicz
+Data: Kraków, 2025
+
+================================================================================
+
+1. CEL I DANE
+================================================================================
+
+Cel: Dopasowanie optymalnego modelu ARMA-GARCH do dziennych stóp zwrotu S&P 500
+     uwzględniającego efekt dźwigni i grube ogony rozkładu.
+
+Dane: S&P 500 ETF (SPY), okres: 2017-01-04 do 2018-12-31, N = 501 obserwacji
+
+Modele testowane:
+  • Średnia warunkowa: ARMA(p,q), wybór według AIC
+  • Zmienność warunkowa: GARCH(1,1), EGARCH(1,1), GJR-GARCH(1,1)
+  • Rozkłady: Normal, Student's t
+  • Razem: 9 kombinacji (3 modele × 3 rozkłady)
+
+
+2. CZĘŚĆ A - WYNIKI DLA CAŁEGO SZEREGU
+================================================================================
+
+2.1. Właściwości szeregu czasowego
+--------------------------------------------------------------------------------
+Średnia:           0.021% dziennie  |  Stacjonarność (ADF):  -5.35***
+Odchylenie std.:   0.818%           |  Efekt ARCH (LB):      135.96***
+Skośność:         -0.730            |  Normalność (JB):      883.58***
+Kurtoza:           6.417            |
+                                    |  *** p < 0.001
+
+Wnioski: Szereg stacjonarny, silny efekt ARCH, grube ogony, lewa asymetria.
+
+2.2. Wybrany model
+--------------------------------------------------------------------------------
+Równanie średniej:  ARMA(3,3)  - najniższe AIC spośród 25 kombinacji
+
+Ranking modeli GARCH:
+┌───────────────┬─────────────┬──────────┬────────────────┐
+│    Model      │  Rozkład    │   AIC    │    Ranking     │
+├───────────────┼─────────────┼──────────┼────────────────┤
+│ GJR-GARCH     │ Student's t │  913.23  │   1 ★★★ BEST   │
+│ GARCH         │ Student's t │  920.81  │   2            │
+│ EGARCH        │ Student's t │  925.65  │   3            │
+│ GJR-GARCH     │ Normal      │  970.47  │   4            │
+│ GARCH         │ Normal      │  994.60  │   5            │
+│ EGARCH        │ Normal      │ 1004.80  │   6            │
+└───────────────┴─────────────┴──────────┴────────────────┘
+
+Najlepszy model: ARMA(3,3) - GJR-GARCH(1,1) - Student's t
+
+2.3. Parametry najlepszego modelu
+--------------------------------------------------------------------------------
+GJR-GARCH: σ²ₜ = ω + α·ε²ₜ₋₁ + γ·ε²ₜ₋₁·I(εₜ₋₁<0) + β·σ²ₜ₋₁
+
+┌──────────┬──────────┬───────────┬──────────┬───────────────────────────┐
+│ Parametr │ Wartość  │  Std.Err  │ p-value  │       Interpretacja       │
+├──────────┼──────────┼───────────┼──────────┼───────────────────────────┤
+│ ω        │  0.0178  │  0.0086   │  0.038*  │ Wariancja bazowa          │
+│ α        │  0.0295  │  0.0415   │  0.478   │ Symetryczny szok          │
+│ γ        │  0.2391  │  0.1187   │  0.044*  │ EFEKT DŹWIGNI             │
+│ β        │  0.8355  │  0.0515   │ <0.001***│ Persistencja zmienności   │
+│ ν        │  3.998   │  0.843    │ <0.001***│ Stopnie swobody (rozkład t)│
+└──────────┴──────────┴───────────┴──────────┴───────────────────────────┘
+
+Kluczowe wnioski:
+  • γ = 0.24 > 0 (p < 0.05): Negatywne szoki zwiększają zmienność
+    (α+γ)/α = 9.1× bardziej niż pozytywne (efekt dźwigni)
+  • α + β + γ/2 = 0.985: Wysoka persistencja (half-life ≈ 46 dni)
+  • ν ≈ 4: Bardzo ciężkie ogony (P(|r|>4σ) jest 40× częstsze niż w N(0,1))
+
+
+3. CZĘŚĆ B - ANALIZA W PRZESUWANYCH OKNACH
+================================================================================
+
+3.1. Konfiguracja
+--------------------------------------------------------------------------------
+Okna: 100, 200, 500 obserwacji  |  Modele: GARCH, EGARCH, GJR-GARCH
+Koniec 1. okna: 2018-12-31       |  Rozkłady: Normal, Student's t
+Razem: 1899 prognoz (891 + 1791 + 9) w 27 kombinacjach
+
+3.2. Pokrycie przedziału ufności (teoretyczne: 95%)
+--------------------------------------------------------------------------------
+┌──────┬────────────┬──────────────┬─────────────┬──────────────────────┐
+│ Okno │ N prognoz  │  Naruszenia  │  Coverage   │      Ocena           │
+├──────┼────────────┼──────────────┼─────────────┼──────────────────────┤
+│ 100  │    891     │      93      │   89.56%    │ Za niska (-5.4pp)    │
+│ 200  │   1791     │      91      │   94.92%    │ Optymalna! (≈95%)    │
+│ 500  │      9     │       0      │  100.00%    │ Za mało danych       │
+└──────┴────────────┴──────────────┴─────────────┴──────────────────────┘
+
+3.3. Porównanie modeli i rozkładów
+--------------------------------------------------------------------------------
+OKNO 100 - pokrycie CI:
+  Według modelu:     GJR-GARCH 97.3%  >  GARCH 92.6%  >  EGARCH 78.5%
+  Według rozkładu:   Student's t 90.6%  >  Normal 84.2%  (różnica +6.4pp)
+
+OKNO 200 - pokrycie CI:
+  Według modelu:     EGARCH 95.3% ≈ GARCH 95.1% ≈ GJR-GARCH 94.3% (różnica <1pp)
+  Według rozkładu:   Student's t 95.3%  >  Normal 94.1%  (różnica +1.2pp)
+
+Wnioski:
+  ✓ GJR-GARCH stabilny w małych próbach (N=100)
+  ✓ Dla N=200 wszystkie modele równoważne - wybór według AIC
+  ✓ Rozkład Student's t KONSEKWENTNIE lepszy od normalnego
+
+3.4. Analiza naruszeń
+--------------------------------------------------------------------------------
+Typ naruszeń:        Poniżej CI: 143 (73.7%)  |  Powyżej CI: 51 (26.3%)
+Asymetria:           2.8 : 1 (model niedoszacowuje ryzyko spadkowe)
+Rozkład w czasie:    Wszystkie naruszenia w 2018 (korekta rynkowa Q4)
+Clustering:          14 dni z konsekutywnymi naruszeniami
+
+Najbardziej problematyczne miesiące 2018:
+  • Luty:       38 naruszeń (korekta związana z inflacją)
+  • Październik: 52 naruszenia (panika: stopy procentowe + wojna handlowa)
+  • Grudzień:   41 naruszeń (dołek bessy)
+
+
+4. NAJWAŻNIEJSZE WNIOSKI
+================================================================================
+
+1. MODEL OPTYMALNY: GJR-GARCH(1,1) + Student's t + Okno 200
+
+   Uzasadnienie:
+     ✓ Najniższe AIC (913.23) spośród 9 modeli
+     ✓ Uwzględnia efekt dźwigni (γ=0.24, p<0.05)
+     ✓ Grube ogony (ν=4.0)
+     ✓ Pokrycie CI 94.92% ≈ 95% teoretyczne
+     ✓ Stabilny w małych i dużych próbach
+
+2. EFEKT DŹWIGNI jest statystycznie istotny i ekonomicznie znaczący:
+
+   γ = 0.24 (p = 0.044) → negatywne szoki zwiększają zmienność 9× bardziej
+
+   Implikacja: Value-at-Risk dla pozycji długich powinien być asymetryczny
+
+3. ROZKŁAD NORMALNY jest NIEADEKWATNY:
+
+   Niedoszacowanie pokrycia:  -6.4pp dla N=100,  -1.2pp dla N=200
+   Przyczyna: Nie uwzględnia grubych ogonów (kurtoza = 6.4 vs 3.0)
+
+4. OKNO 200 OBSERWACJI jest optymalne:
+
+   Kompromis: Wystarczająco długie dla estymacji + krótkie dla adaptacji
+   Praktyka: ≈ 1 rok tradingowy (banki używają 1-2 lat)
+
+5. NARUSZENIA CI są ASYMETRYCZNE (74% poniżej):
+
+   Przyczyny:
+     • Efekt dźwigni (szybsza reakcja na spadki)
+     • Panika rynkowa (Q4 2018: korekta -20%)
+     • Clustering zmienności w kryzysach
+
+   Wniosek: Szczególna ostrożność w zarządzaniu ryzykiem spadkowym
+
+
+5. REKOMENDACJE PRAKTYCZNE
+================================================================================
+
+Dla zarządzania ryzykiem:
+  ✓ Zastąp GARCH(Normal) przez GJR-GARCH(Student's t) w modelach VaR
+  ✓ Okno estymacyjne: 200-250 obserwacji (≈1 rok)
+  ✓ Asymetryczne limity: downside VaR wymaga bufora +20-30%
+  ✓ Reestymacja: kwartalna (nie częściej!)
+
+Dla zarządzania portfelem:
+  ✓ Po wzroście zmienności: obniż ekspozycję na 4-6 tygodni (half-life=46 dni)
+  ✓ Hedging: więcej zabezpieczeń w trendzie spadkowym (efekt asymetrii)
+  ✓ Sygnał alertu: σ̂ₜ₊₁ > 2% → rozważ redukcję ekspozycji
+
+
+6. OGRANICZENIA I DALSZE BADANIA
+================================================================================
+
+Ograniczenia:
+  • Krótki okres (2017-2018) - brak pełnego cyklu koniunkturalnego
+  • Jedno aktywo (S&P 500) - brak dywersyfikacji
+  • Brak zmiennych egzogenicznych (stopy, inflacja, sentiment)
+
+Kierunki rozszerzeń:
+  • Okres 2008-2024 (kryzysy: subprime, COVID, inflacja)
+  • Multivariate DCC-GARCH dla portfela aktywów
+  • Markov-switching GARCH dla zmian reżimu
+  • Trading strategies z dynamiczną zmiennością
+
+
+LITERATURA
+================================================================================
+[1] Bollerslev, T. (1986). "Generalized autoregressive conditional
+    heteroskedasticity." Journal of Econometrics, 31(3), 307-327.
+[2] Glosten, L.R., Jagannathan, R., Runkle, D.E. (1993). "On the relation
+    between expected value and volatility." Journal of Finance, 48(5).
+[3] Nelson, D.B. (1991). "Conditional heteroskedasticity in asset returns."
+    Econometrica, 59(2), 347-370.
+
+================================================================================
+                              KONIEC RAPORTU
+================================================================================

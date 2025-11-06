@@ -1,0 +1,17 @@
+{
+  "ticker": "SPY",
+  "start_date": "2017-01-01",
+  "end_date": "2025-11-06",
+  "n_observations": 501,
+  "arma_order": [
+    3,
+    3
+  ],
+  "best_model": "GJR-GARCH_studentst",
+  "forecast": {
+    "mean": 0.004020137023603425,
+    "variance": 3.4015737131830415,
+    "ci_lower": -3.6108111653677355,
+    "ci_upper": 3.618851439414942
+  }
+}
