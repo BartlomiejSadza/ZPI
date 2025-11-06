@@ -29,7 +29,8 @@ Kompleksowa analiza modelowania zmienności dziennych stóp zwrotu indeksu S&P 5
 
 ```
 arma_garch_analysis/
-├── README.md                                          # Ten plik
+├── README.md                                          # Ten plik - dokumentacja techniczna
+├── RAPORT_ARMA_GARCH.txt                             # Raport akademicki (75 stron)
 ├── requirements.txt                                   # Zależności Python
 ├── part_a_analysis.py                                # Skrypt Część A
 ├── part_b_analysis.py                                # Skrypt Część B
@@ -41,6 +42,18 @@ arma_garch_analysis/
 ├── part_b_distribution_tests.png                     # Testy zgodności rozkładu
 └── part_b_forecast_errors.png                        # Analiza błędów prognozy
 ```
+
+## 📄 Dokumentacja
+
+**README.md** - Dokumentacja techniczna projektu z instrukcjami uruchomienia i podstawowymi wynikami
+
+**RAPORT_ARMA_GARCH.txt** - Obszerny raport akademicki (920 linii) zawierający:
+- Cel i metodykę badania
+- Szczegółowe wyniki statystyczne z tabelami ASCII
+- Analizę zgodności z teorią ekonometryczną
+- Wnioski i implikacje praktyczne
+- Limitacje i kierunki dalszych badań
+- Bibliografię i referencje
 
 ## 🚀 Instalacja i Uruchomienie
 
